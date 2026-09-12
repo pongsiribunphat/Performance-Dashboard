@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OEE Real-time Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Prompt', sans-serif; background-color: #f4f7f6; color: #333; padding: 20px; text-align: center; }
+        h1 { color: #0056b3; margin-bottom: 5px; }
+        .auto-refresh-text { color: #28a745; font-size: 14px; margin-bottom: 20px; font-weight: bold; }
+        
+        .status-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; margin-bottom: 30px; }
+        .status-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 200px; transition: 0.3s; }
+        .status-card h3 { margin: 0 0 10px 0; }
+        .status-text { font-size: 22px; font-weight: bold; }
+        
+        /* สีกรอบสถานะ */
+        .st-Operating { color: #28a745; border-bottom: 5px solid #28a745; }
+        .st-Setup { color: #ffc107; border-bottom: 5px solid #ffc107; }
+        .st-Breakdown { color: #dc3545; border-bottom: 5px solid #dc3545; }
+        .st-NoData { color: #6c757d; border-bottom: 5px solid #6c757d; }
+
+        .chart-container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin: 20px auto; max-width: 900px; }
+        .back-btn { display: inline-block; padding: 10px 20px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 8px; margin-bottom: 10px;}
+        .back-btn:hover { background-color: #5a6268; }
+    </style>
+</head>
+<body>
+
+    <a href="index.html" class="back-btn">⬅️ กลับหน้าหลัก</a>
+    <h1>📊 OEE Real-time Dashboard</h1>
+    <!-- เปลี่ยนข้อความแทนปุ่มกด -->
+    <p class="auto-refresh-text">🟢 ระบบกำลังอัปเดตข้อมูลอัตโนมัติทุกๆ 5 วินาที <span id="loading"></span></p>
+
+    <!-- การ์ดโชว์สถานะ -->
+    <div class="status-container">
+        <div id="card-mc1" class="status-card"><h3>เครื่องที่ 1</h3><span id="st-mc1" class="status-text st-NoData">-</span></div>
+        <div id="card-mc2" class="status-card"><h3>เครื่องที่ 2</h3><span id="st-mc2" class="status-text st-NoData">-</span></div>
+        <div id="card-mc3" class="status-card"><h3>เครื่องที่ 3</h3><span id="st-mc3" class="status-text st-NoData">-</span></div>
+        <div id="card-mc4" class="status-card"><h3>เครื่องที่ 4</h3><span id="st-mc4" class="status-text st-NoData">-</span></div>
+    </div>
+
+    <!-- กราฟรวม 4 เครื่อง -->
+    <div class="chart-container">
+        <h2>กราฟรวม OEE ทั้ง 4 เครื่อง</h2>
+        <canvas id="combinedChart"></canvas>
+    </div>
+
+    <script>
+        // ⚠️ อย่าลืมวาง URL Web App ของคุณตรงนี้
+        const URL = "https://script.google.com/macros/s/AKfycbw05cVoKThkucL6gBJSVdHySb63QZAHPLF-37D90GJmeYPAzevMRSQXf3I8WNpa9nRFDA/exec"; 
+
+        let combinedChartObj = null;
+
+        function fetchData() {
+            document.getElementById("loading").innerText = "(กำลังดึงข้อมูลล่าสุด...)";
+            
+            // 💡 ทริค Senior: เติมรหัสเวลาต่อท้าย URL เพื่อบังคับให้ Browser ดึงข้อมูลใหม่เสมอ (ทะลวง Cache)
+            const noCacheURL = URL + "?t=" + new Date().getTime();
+
+            fetch(noCacheURL)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById("loading").innerText = "";
+                    updateDashboard(data.machines);
+                })
+                .catch(err => {
+                    document.getElementById("loading").innerText = "(เชื่อมต่อขัดข้อง จะลองใหม่...)";
+                    console.error(err);
+                });
+        }
+
+        function updateDashboard(machines) {
+            const mcNames = ["เครื่องที่ 1", "เครื่องที่ 2", "เครื่องที่ 3", "เครื่องที่ 4"];
+            
+            mcNames.forEach((mc, index) => {
+                const el = document.getElementById("st-mc" + (index + 1));
+                const card = document.getElementById("card-mc" + (index + 1));
+                const status = machines[mc].status;
+                
+                el.innerText = status;
+                
+                let statusClass = "st-NoData";
+                if (status === "Operating") statusClass = "st-Operating";
+                else if (status === "Breakdown") statusClass = "st-Breakdown";
+                else if (status === "Setup") statusClass = "st-Setup";
+                
+                el.className = "status-text " + statusClass;
+                card.className = "status-card " + statusClass;
+            });
+
+            const datasets = [
+                { label: 'เครื่องที่ 1', data: machines["เครื่องที่ 1"].oee, borderColor: '#007bff', backgroundColor: '#007bff', tension: 0.2 },
+                { label: 'เครื่องที่ 2', data: machines["เครื่องที่ 2"].oee, borderColor: '#28a745', backgroundColor: '#28a745', tension: 0.2 },
+                { label: 'เครื่องที่ 3', data: machines["เครื่องที่ 3"].oee, borderColor: '#ffc107', backgroundColor: '#ffc107', tension: 0.2 },
+                { label: 'เครื่องที่ 4', data: machines["เครื่องที่ 4"].oee, borderColor: '#dc3545', backgroundColor: '#dc3545', tension: 0.2 }
+            ];
+
+            // ดึง Label แกน X (เวลา) มาแสดง
+            // 💡 โค้ดใหม่: หาแกน X จากเครื่องที่ถูกกดเยอะที่สุด (กราฟจะได้วิ่งไปเรื่อยๆ ตามเครื่องที่ขยับบ่อยสุด)
+            let maxLength = 0;
+            let labels = ["-"];
+            
+            mcNames.forEach(mc => {
+                if (machines[mc].labels.length > maxLength) {
+                    maxLength = machines[mc].labels.length;
+                    labels = machines[mc].labels;
+                }
+            });
+        }
+
+        window.onload = function() {
+            fetchData(); 
+            // 💡 ปรับความเร็วเป็นดึงข้อมูลทุกๆ 2 วินาที (2000 มิลลิวินาที)
+            setInterval(fetchData, 2000); 
+        };
+    </script>
+</body>
+</html>

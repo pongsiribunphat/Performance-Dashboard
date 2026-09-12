@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>หน้าของ เครื่องที่ 2</title>
+    
+    <!-- ดึงฟอนต์ 'Prompt' จาก Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        body { 
+            font-family: 'Prompt', sans-serif; 
+            text-align: center; 
+            padding-top: 40px; 
+            background-color: #f0f8ff; /* สีพื้นหลังเดียวกับหน้ารวม */
+            color: #333; 
+        }
+
+        h1 { color: #0056b3; margin-bottom: 10px; }
+        p { font-size: 18px; color: #555; }
+
+        .btn-container { margin-top: 30px; }
+        
+        /* ตกแต่งปุ่มตัวเลขให้ใหญ่และกดง่าย */
+        button {
+            font-family: 'Prompt', sans-serif;
+            font-size: 28px;
+            font-weight: bold;
+            width: 80px;
+            height: 80px;
+            margin: 10px;
+            cursor: pointer;
+            border-radius: 12px;
+            border: none;
+            background-color: #ff9800; /* สีส้ม */
+            color: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: 0.2s;
+        }
+        
+        button:hover { 
+            background-color: #e68a00; 
+            transform: scale(1.05); 
+        }
+        
+        #status { 
+            margin-top: 25px; 
+            font-size: 18px; 
+            font-weight: bold; 
+        }
+
+        /* ตกแต่งปุ่มย้อนกลับ */
+        .back-btn {
+            display: inline-block;
+            margin-top: 40px;
+            padding: 12px 25px;
+            background-color: #6c757d; /* สีเทา */
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 16px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: 0.2s;
+        }
+        .back-btn:hover { background-color: #5a6268; }
+    </style>
+</head>
+<body>
+
+    <h1>🖥️ ยินดีต้อนรับ: เครื่องที่ 2</h1>
+    <p>เลือกรหัสเลขที่ต้องการส่งข้อมูล:</p>
+
+    <div class="btn-container">
+        <button onclick="sendData(1)">1</button>
+        <button onclick="sendData(2)">2</button>
+        <button onclick="sendData(3)">3</button> <br>
+        <button onclick="sendData(4)">4</button>
+        <button onclick="sendData(5)">5</button>
+        <button onclick="sendData(6)">6</button>
+    </div>
+
+    <p id="status"></p>
+
+    <a href="index.html" class="back-btn">⬅️ ย้อนกลับไปหน้าหลัก</a>
+
+    <script>
+        function sendData(number) {
+            // ⚠️ วาง URL ของ Google Apps Script ในเครื่องหมายคำพูดด้านล่างนี้
+            const url = "https://script.google.com/macros/s/AKfycbw05cVoKThkucL6gBJSVdHySb63QZAHPLF-37D90GJmeYPAzevMRSQXf3I8WNpa9nRFDA/exec"; 
+
+            const statusText = document.getElementById("status");
+            statusText.style.color = "#007bff"; // สีน้ำเงินตอนกำลังส่ง
+            statusText.innerText = "กำลังส่งข้อมูล...";
+
+            fetch(url, {
+                method: "POST",
+                body: JSON.stringify({
+                    MCName: "เครื่องที่ 2", // ส่งคำว่า "เครื่องที่ 1" ไปยัง Sheet
+                    numberClicked: number
+                })
+            })
+            .then(res => res.text())
+            .then(data => {
+                statusText.style.color = "#28a745"; // สีเขียวตอนสำเร็จ
+                statusText.innerText = "ส่งข้อมูลเลข " + number + " สำเร็จแล้ว!";
+            })
+            .catch(err => {
+                statusText.style.color = "#dc3545"; // สีแดงตอนเออเร่อ
+                statusText.innerText = "เกิดข้อผิดพลาดในการส่ง";
+            });
+        }
+    </script>
+
+</body>
+</html>

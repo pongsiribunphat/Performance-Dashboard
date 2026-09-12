@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>หน้าของ คนที่ 5</title>
+    
+    <!-- 1. ดึงฟอนต์ 'Prompt' จาก Google Fonts มาใช้ -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        /* 2. ตั้งค่าสีพื้นหลังเว็บ และเรียกใช้ฟอนต์ */
+        body { 
+            font-family: 'Prompt', sans-serif; 
+            text-align: center; 
+            padding-top: 30px; 
+            background-color: #f0f8ff; /* สีพื้นหลังเว็บ (ฟ้าอ่อน) */
+            color: #333; /* สีตัวอักษรหลัก (เทาเข้ม) */
+        }
+
+        /* ตกแต่งรูปภาพไม่ให้ใหญ่เกินไป */
+        .profile-img {
+            width: 150px;       /* ปรับขนาดความกว้างรูป */
+            height: 150px;      /* ปรับขนาดความสูงรูป */
+            object-fit: cover;  /* ทำให้รูปไม่เบี้ยว */
+            border-radius: 50%; /* ทำให้รูปเป็นวงกลม */
+            border: 4px solid #fff; /* ขอบสีขาว */
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1); /* ใส่เงาให้รูป */
+            margin-bottom: 20px;
+        }
+
+        .btn-container { margin-top: 20px; }
+        
+        /* 3. ตกแต่งสีและรูปร่างของปุ่มตัวเลข */
+        button {
+            font-family: 'Prompt', sans-serif;
+            font-size: 24px;
+            font-weight: bold;
+            width: 70px;
+            height: 70px;
+            margin: 10px;
+            cursor: pointer;
+            border-radius: 12px; /* ทำให้ปุ่มขอบมน */
+            border: none;
+            background-color: #ff9800; /* สีพื้นหลังปุ่ม (สีส้ม) */
+            color: white; /* สีตัวเลขในปุ่ม (สีขาว) */
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* ใส่เงาให้ปุ่ม */
+            transition: 0.2s; /* ทำให้เวลาชี้เมาส์แล้วมีเอฟเฟกต์นุ่มนวล */
+        }
+        
+        /* สีปุ่มเวลาเอาเมาส์ไปชี้ (Hover) */
+        button:hover { 
+            background-color: #e68a00; /* เปลี่ยนสีให้เข้มขึ้นนิดนึง */
+            transform: scale(1.05); /* ขยายปุ่มนิดนึง */
+        }
+        
+        #status { margin-top: 20px; font-weight: bold; color: #28a745; /* สีเขียวตอนส่งสำเร็จ */ }
+
+        /* ตกแต่งปุ่มย้อนกลับ */
+        .back-btn {
+            display: inline-block;
+            margin-top: 40px;
+            padding: 12px 25px;
+            background-color: #6c757d; /* สีเทา */
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 16px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .back-btn:hover { background-color: #5a6268; }
+    </style>
+</head>
+<body>
+
+    <!-- 4. ส่วนของรูปภาพ (แก้ชื่อไฟล์ src ให้ตรงกับรูปในเครื่องคุณ) -->
+    <!-- หากยังไม่มีรูป ให้ใช้รูปตัวอย่างจากเว็บอื่นชั่วคราวก่อนได้ -->
+    <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="รูปโปรไฟล์" class="profile-img">
+
+    <h1>ยินดีต้อนรับ: คนที่ 5</h1>
+    <p>เลือกรหัสเลขที่ต้องการส่ง:</p>
+
+    <div class="btn-container">
+        <button onclick="sendData(1)">1</button>
+        <button onclick="sendData(2)">2</button>
+        <button onclick="sendData(3)">3</button> <br>
+        <button onclick="sendData(4)">4</button>
+        <button onclick="sendData(5)">5</button>
+        <button onclick="sendData(6)">6</button>
+    </div>
+
+    <p id="status"></p>
+
+    <a href="index.html" class="back-btn">⬅️ ย้อนกลับไปหน้าหลัก</a>
+
+    <script>
+        function sendData(number) {
+            // ⚠️ วาง URL ของคุณตรงนี้
+            const url = "https://script.google.com/macros/s/AKfycbw05cVoKThkucL6gBJSVdHySb63QZAHPLF-37D90GJmeYPAzevMRSQXf3I8WNpa9nRFDA/exec"; 
+
+            document.getElementById("status").innerText = "กำลังส่งข้อมูล...";
+
+            fetch(url, {
+                method: "POST",
+                body: JSON.stringify({
+                    MCName: "คนที่ 5", 
+                    numberClicked: number
+                })
+            })
+            .then(res => res.text())
+            .then(data => {
+                document.getElementById("status").innerText = "ส่งข้อมูลเลข " + number + " สำเร็จแล้ว!";
+            })
+            .catch(err => {
+                document.getElementById("status").innerText = "เกิดข้อผิดพลาดในการส่ง";
+            });
+        }
+    </script>
+
+</body>
+</html>
