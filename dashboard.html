@@ -50,7 +50,7 @@
 
     <script>
         // ⚠️ อย่าลืมวาง URL Web App ของคุณตรงนี้
-        const URL = "https://script.google.com/macros/s/AKfycbw05cVoKThkucL6gBJSVdHySb63QZAHPLF-37D90GJmeYPAzevMRSQXf3I8WNpa9nRFDA/exec"; 
+        const URL = "/api/submit";
 
         let combinedChartObj = null;
 
@@ -107,6 +107,24 @@
                 if (machines[mc].labels.length > maxLength) {
                     maxLength = machines[mc].labels.length;
                     labels = machines[mc].labels;
+                }
+            });
+
+            if (combinedChartObj) {
+                combinedChartObj.data.labels = labels;
+                combinedChartObj.data.datasets = datasets;
+                combinedChartObj.update();
+                return;
+            }
+
+            combinedChartObj = new Chart(document.getElementById("combinedChart"), {
+                type: "line",
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: { beginAtZero: true, max: 100 }
+                    }
                 }
             });
         }
