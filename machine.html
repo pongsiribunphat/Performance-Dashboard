@@ -50,43 +50,53 @@
     <script>
         const URL = "/api/submit"; // ใช้ผ่าน Vercel
         
-        // 💡 เทคนิคการอ่านค่าจาก URL (เช่น ?id=1)
-        const urlParams = new URLSearchParams(window.location.search);
-        const machineId = urlParams.get('id') || "1"; // ถ้าไม่มีเลข ส่ง 1 ไปเป็นค่าเริ่มต้น
-        const machineName = "เครื่องที่ " + machineId;
-        
-        document.getElementById("machine-title").innerText = "📊 ข้อมูลเชิงลึก: " + machineName;
-        document.title = machineName;
-
-        let singleChartObj = null;
-        let isFetching = false;
+        // 💡 เทคนิคที่ 1: สร้างตัวล็อก เพื่อป้องกันการโหลดข้อมูลชนกัน
+        let isFetching = false; 
+        let lastDetailData = "";
 
         function fetchData() {
-            if (isFetching) return;
-            isFetching = true;
+            // ถ้าระบบยังโหลดของเก่าไม่เสร็จ ให้หยุดการทำงานรอบนี้ไปก่อน
+            if (isFetching) return; 
+            
+            isFetching = true; // ล็อกประตู
             document.getElementById("loading").innerText = "(กำลังซิงค์...)";
             
-            fetch(URL + "?t=" + Date.now())
-                .then(res => {
-                    if (!res.ok) throw new Error("HTTP " + res.status);
-                    return res.json();
-                })
+            // 💡 ทริคทะลวง Cache ป้องกันเว็บจำข้อมูลเก่า
+            const noCacheURL = URL + "?t=" + new Date().getTime();
+
+            fetch(noCacheURL)
+                .then(res => res.json())
                 .then(data => {
                     document.getElementById("loading").innerText = "";
-                    updateDetail(data.machines[machineName]);
+                    
+                    // เช็คว่าหน้าเว็บปัจจุบันคือ dashboard หรือ machine แล้วเรียกฟังก์ชันให้ถูก
+                    if (typeof updateDashboard === "function") {
+                        updateDashboard(data.machines);
+                    } else if (typeof updateDetail === "function") {
+                        updateDetail(data.machines[machineName]);
+                    }
                 })
                 .catch(err => {
-                    document.getElementById("loading").innerText = "(เชื่อมต่อขัดข้อง จะลองใหม่...)";
-                    console.error(err);
+                    // ถ้าหลุดจริงๆ ให้ขึ้นข้อความนุ่มนวลขึ้น
+                    document.getElementById("loading").innerText = "(กำลังพยายามเชื่อมต่อใหม่...)";
+                    console.error("Fetch Error:", err);
                 })
                 .finally(() => {
-                    isFetching = false;
-                    setTimeout(fetchData, 2000);
+                    isFetching = false; // โหลดเสร็จแล้ว ปลดล็อกประตูได้
+                    setTimeout(fetchData, 5000);
                 });
         }
 
         function updateDetail(machineData) {
             if (!machineData) return;
+
+            const detailData = JSON.stringify({
+                labels: machineData.labels,
+                oee: machineData.oee,
+                history: machineData.history
+            });
+            if (detailData === lastDetailData) return;
+            lastDetailData = detailData;
 
             // 1. อัปเดตตารางประวัติ
             const tbody = document.getElementById("history-table");

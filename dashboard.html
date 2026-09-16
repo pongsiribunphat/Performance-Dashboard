@@ -62,33 +62,41 @@
 
     <script>
         // ⚠️ อย่าลืมวาง URL Web App ของคุณตรงนี้
-        const URL = "/api/submit";
-
-        let combinedChartObj = null;
-        let isFetching = false;
-        let lastChartData = "";
+       const URL = "/api/submit"; // ใช้ผ่าน Vercel
+        
+        // 💡 เทคนิคที่ 1: สร้างตัวล็อก เพื่อป้องกันการโหลดข้อมูลชนกัน
+        let isFetching = false; 
 
         function fetchData() {
-            if (isFetching) return;
-            isFetching = true;
-            document.getElementById("loading").innerText = "(กำลังดึงข้อมูลล่าสุด...)";
+            // ถ้าระบบยังโหลดของเก่าไม่เสร็จ ให้หยุดการทำงานรอบนี้ไปก่อน
+            if (isFetching) return; 
             
-            // 💡 ทริค Senior: เติมรหัสเวลาต่อท้าย URL เพื่อบังคับให้ Browser ดึงข้อมูลใหม่เสมอ (ทะลวง Cache)
+            isFetching = true; // ล็อกประตู
+            document.getElementById("loading").innerText = "(กำลังซิงค์...)";
+            
+            // 💡 ทริคทะลวง Cache ป้องกันเว็บจำข้อมูลเก่า
             const noCacheURL = URL + "?t=" + new Date().getTime();
 
             fetch(noCacheURL)
                 .then(res => res.json())
                 .then(data => {
                     document.getElementById("loading").innerText = "";
-                    updateDashboard(data.machines);
+                    
+                    // เช็คว่าหน้าเว็บปัจจุบันคือ dashboard หรือ machine แล้วเรียกฟังก์ชันให้ถูก
+                    if (typeof updateDashboard === "function") {
+                        updateDashboard(data.machines);
+                    } else if (typeof updateDetail === "function") {
+                        updateDetail(data.machines[machineName]);
+                    }
                 })
                 .catch(err => {
-                    document.getElementById("loading").innerText = "(เชื่อมต่อขัดข้อง จะลองใหม่...)";
-                    console.error(err);
+                    // ถ้าหลุดจริงๆ ให้ขึ้นข้อความนุ่มนวลขึ้น
+                    document.getElementById("loading").innerText = "(กำลังพยายามเชื่อมต่อใหม่...)";
+                    console.error("Fetch Error:", err);
                 })
                 .finally(() => {
-                    isFetching = false;
-                    setTimeout(fetchData, 2000);
+                    isFetching = false; // โหลดเสร็จแล้ว ปลดล็อกประตูได้
+                    setTimeout(fetchData, 5000);
                 });
         }
 
