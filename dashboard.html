@@ -83,19 +83,25 @@
 
             fetch(noCacheURL, { signal: controller.signal })
                 .then(res => {
-                    if (!res.ok) throw new Error("HTTP " + res.status);
-                    return res.json();
+                    return res.text().then(text => {
+                        if (!res.ok) throw new Error("HTTP " + res.status + ": " + text.slice(0, 120));
+                        try {
+                            return JSON.parse(text);
+                        } catch (error) {
+                            throw new Error("API ไม่ได้ส่ง JSON: " + text.slice(0, 120));
+                        }
+                    });
                 })
                 .then(data => {
-                    document.getElementById("loading").innerText = "";
-                    
                     if (!data.machines) throw new Error("รูปแบบข้อมูลจาก API ไม่ถูกต้อง");
                     updateDashboard(data.machines);
+                    document.getElementById("loading").innerText = "";
                 })
                 .catch(err => {
-                    // ถ้าหลุดจริงๆ ให้ขึ้นข้อความนุ่มนวลขึ้น
-                    document.getElementById("loading").innerText = "(กำลังพยายามเชื่อมต่อใหม่...)";
-                    console.error("Fetch Error:", err);
+                    document.getElementById("loading").innerText = err.name === "AbortError"
+                        ? "(เซิร์ฟเวอร์ตอบช้า จะลองใหม่...)"
+                        : "(โหลดข้อมูลไม่สำเร็จ จะลองใหม่...)";
+                    console.error("Dashboard Error:", err);
                 })
                 .finally(() => {
                     clearTimeout(requestTimeout);
@@ -106,6 +112,10 @@
 
         function updateDashboard(machines) {
             const mcNames = ["เครื่องที่ 1", "เครื่องที่ 2", "เครื่องที่ 3", "เครื่องที่ 4"];
+            const missingMachine = mcNames.find(mc => !machines[mc]);
+            if (missingMachine) {
+                throw new Error("ไม่พบข้อมูล " + missingMachine);
+            }
             
             mcNames.forEach((mc, index) => {
                 const el = document.getElementById("st-mc" + (index + 1));
@@ -145,6 +155,10 @@
             const chartData = JSON.stringify({ labels, datasets: datasets.map(dataset => dataset.data) });
             if (combinedChartObj && chartData === lastChartData) return;
             lastChartData = chartData;
+
+            if (typeof Chart === "undefined") {
+                throw new Error("โหลด Chart.js ไม่สำเร็จ");
+            }
 
             // 💡 จุดที่แก้ไข: เช็คว่าถ้ามีกราฟอยู่แล้ว ให้อัปเดตแค่ข้อมูลข้างใน
             if (combinedChartObj) {
