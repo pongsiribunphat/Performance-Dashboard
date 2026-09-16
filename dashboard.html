@@ -62,7 +62,9 @@
 
     <script>
         // ⚠️ อย่าลืมวาง URL Web App ของคุณตรงนี้
-       const URL = "/api/submit"; // ใช้ผ่าน Vercel
+        const URL = "/api/submit"; // ใช้ผ่าน Vercel
+        let combinedChartObj = null;
+        let lastChartData = "";
         
         // 💡 เทคนิคที่ 1: สร้างตัวล็อก เพื่อป้องกันการโหลดข้อมูลชนกัน
         let isFetching = false; 
@@ -76,18 +78,19 @@
             
             // 💡 ทริคทะลวง Cache ป้องกันเว็บจำข้อมูลเก่า
             const noCacheURL = URL + "?t=" + new Date().getTime();
+            const controller = new AbortController();
+            const requestTimeout = setTimeout(() => controller.abort(), 10000);
 
-            fetch(noCacheURL)
-                .then(res => res.json())
+            fetch(noCacheURL, { signal: controller.signal })
+                .then(res => {
+                    if (!res.ok) throw new Error("HTTP " + res.status);
+                    return res.json();
+                })
                 .then(data => {
                     document.getElementById("loading").innerText = "";
                     
-                    // เช็คว่าหน้าเว็บปัจจุบันคือ dashboard หรือ machine แล้วเรียกฟังก์ชันให้ถูก
-                    if (typeof updateDashboard === "function") {
-                        updateDashboard(data.machines);
-                    } else if (typeof updateDetail === "function") {
-                        updateDetail(data.machines[machineName]);
-                    }
+                    if (!data.machines) throw new Error("รูปแบบข้อมูลจาก API ไม่ถูกต้อง");
+                    updateDashboard(data.machines);
                 })
                 .catch(err => {
                     // ถ้าหลุดจริงๆ ให้ขึ้นข้อความนุ่มนวลขึ้น
@@ -95,6 +98,7 @@
                     console.error("Fetch Error:", err);
                 })
                 .finally(() => {
+                    clearTimeout(requestTimeout);
                     isFetching = false; // โหลดเสร็จแล้ว ปลดล็อกประตูได้
                     setTimeout(fetchData, 5000);
                 });
