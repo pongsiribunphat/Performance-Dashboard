@@ -53,8 +53,12 @@
         const URL = "/api/submit";
 
         let combinedChartObj = null;
+        let isFetching = false;
+        let lastChartData = "";
 
         function fetchData() {
+            if (isFetching) return;
+            isFetching = true;
             document.getElementById("loading").innerText = "(กำลังดึงข้อมูลล่าสุด...)";
             
             // 💡 ทริค Senior: เติมรหัสเวลาต่อท้าย URL เพื่อบังคับให้ Browser ดึงข้อมูลใหม่เสมอ (ทะลวง Cache)
@@ -69,6 +73,10 @@
                 .catch(err => {
                     document.getElementById("loading").innerText = "(เชื่อมต่อขัดข้อง จะลองใหม่...)";
                     console.error(err);
+                })
+                .finally(() => {
+                    isFetching = false;
+                    setTimeout(fetchData, 2000);
                 });
         }
 
@@ -99,7 +107,7 @@
             ];
 
             
-            // 💡 โค้ดใหม่: หาแกน X จากเครื่องที่ถูกกดเยอะที่สุด (กราฟจะได้วิ่งไปเรื่อยๆ ตามเครื่องที่ขยับบ่อยสุด)
+            // ดึง Label แกน X (เวลา) มาแสดง
             let maxLength = 0;
             let labels = ["-"];
             
@@ -110,29 +118,49 @@
                 }
             });
 
-            if (combinedChartObj) {
-                combinedChartObj.data.labels = labels;
-                combinedChartObj.data.datasets = datasets;
-                combinedChartObj.update();
-                return;
-            }
+            const chartData = JSON.stringify({ labels, datasets: datasets.map(dataset => dataset.data) });
+            if (combinedChartObj && chartData === lastChartData) return;
+            lastChartData = chartData;
 
-            combinedChartObj = new Chart(document.getElementById("combinedChart"), {
-                type: "line",
-                data: { labels, datasets },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: { beginAtZero: true, max: 100 }
+            // 💡 จุดที่แก้ไข: เช็คว่าถ้ามีกราฟอยู่แล้ว ให้อัปเดตแค่ข้อมูลข้างใน
+            if (combinedChartObj) {
+                combinedChartObj.data.labels = labels; // อัปเดตแกน X
+                
+                // อัปเดตแค่ข้อมูล (data) ของแกน Y แต่ละเครื่อง โดยไม่ทำลายเส้นเดิม
+                combinedChartObj.data.datasets[0].data = machines["เครื่องที่ 1"].oee;
+                combinedChartObj.data.datasets[1].data = machines["เครื่องที่ 2"].oee;
+                combinedChartObj.data.datasets[2].data = machines["เครื่องที่ 3"].oee;
+                combinedChartObj.data.datasets[3].data = machines["เครื่องที่ 4"].oee;
+                
+                // สั่งให้อัปเดตแบบ 'none' เพื่อปิดอนิเมชั่นเด้งดึ๋ง
+                combinedChartObj.update('none'); 
+                
+            } else {
+                // ถ้าเพิ่งเปิดเว็บครั้งแรก (ยังไม่มีกราฟ) ค่อยสร้างกราฟใหม่
+                const ctx = document.getElementById('combinedChart').getContext('2d');
+                
+                // ข้อมูล datasets สำหรับสร้างกราฟครั้งแรก
+                const datasets = [
+                    { label: 'เครื่องที่ 1', data: machines["เครื่องที่ 1"].oee, borderColor: '#007bff', backgroundColor: '#007bff', tension: 0.2 },
+                    { label: 'เครื่องที่ 2', data: machines["เครื่องที่ 2"].oee, borderColor: '#28a745', backgroundColor: '#28a745', tension: 0.2 },
+                    { label: 'เครื่องที่ 3', data: machines["เครื่องที่ 3"].oee, borderColor: '#ffc107', backgroundColor: '#ffc107', tension: 0.2 },
+                    { label: 'เครื่องที่ 4', data: machines["เครื่องที่ 4"].oee, borderColor: '#dc3545', backgroundColor: '#dc3545', tension: 0.2 }
+                ];
+
+                combinedChartObj = new Chart(ctx, {
+                    type: 'line',
+                    data: { labels: labels, datasets: datasets },
+                    options: {
+                        responsive: true,
+                        animation: false, // ปิดอนิเมชั่นตอนเริ่ม
+                        scales: { y: { beginAtZero: true, max: 100, title: { display: true, text: 'เปอร์เซ็นต์ OEE (%)' } } }
                     }
-                }
-            });
+                });
+            }
         }
 
         window.onload = function() {
-            fetchData(); 
-            // 💡 ปรับความเร็วเป็นดึงข้อมูลทุกๆ 2 วินาที (2000 มิลลิวินาที)
-            setInterval(fetchData, 2000); 
+            fetchData();
         };
     </script>
 </body>
