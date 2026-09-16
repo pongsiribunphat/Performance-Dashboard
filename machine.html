@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>รายละเอียดเครื่องจักร</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Prompt', sans-serif; background-color: #f4f7f6; color: #333; padding: 20px; text-align: center; }
+        h1 { color: #0056b3; }
+        .chart-container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin: 20px auto; max-width: 800px; }
+        .table-container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin: 20px auto; max-width: 800px; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        th { background-color: #0056b3; color: white; }
+        .back-btn { display: inline-block; padding: 10px 20px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 8px; margin-bottom: 20px;}
+        .back-btn:hover { background-color: #5a6268; }
+    </style>
+</head>
+<body>
+
+    <a href="dashboard.html" class="back-btn">⬅️ กลับไปหน้า Dashboard รวม</a>
+    <h1 id="machine-title">ข้อมูลเครื่อง</h1>
+    <p id="loading" style="color: #28a745; font-weight: bold;"></p>
+
+    <!-- กราฟเดี่ยว -->
+    <div class="chart-container">
+        <canvas id="singleChart"></canvas>
+    </div>
+
+    <!-- ตารางประวัติ -->
+    <div class="table-container">
+        <h3>📋 ประวัติการทำงาน</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>เวลา</th>
+                    <th>ปุ่มที่กด</th>
+                    <th>เหตุการณ์ (Status)</th>
+                    <th>OEE (%)</th>
+                </tr>
+            </thead>
+            <tbody id="history-table">
+                <!-- ข้อมูลจะถูกเติมตรงนี้ -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const URL = "/api/submit"; // ใช้ผ่าน Vercel
+        
+        // 💡 เทคนิคการอ่านค่าจาก URL (เช่น ?id=1)
+        const urlParams = new URLSearchParams(window.location.search);
+        const machineId = urlParams.get('id') || "1"; // ถ้าไม่มีเลข ส่ง 1 ไปเป็นค่าเริ่มต้น
+        const machineName = "เครื่องที่ " + machineId;
+        
+        document.getElementById("machine-title").innerText = "📊 ข้อมูลเชิงลึก: " + machineName;
+        document.title = machineName;
+
+        let singleChartObj = null;
+        let isFetching = false;
+
+        function fetchData() {
+            if (isFetching) return;
+            isFetching = true;
+            document.getElementById("loading").innerText = "(กำลังซิงค์...)";
+            
+            fetch(URL + "?t=" + Date.now())
+                .then(res => {
+                    if (!res.ok) throw new Error("HTTP " + res.status);
+                    return res.json();
+                })
+                .then(data => {
+                    document.getElementById("loading").innerText = "";
+                    updateDetail(data.machines[machineName]);
+                })
+                .catch(err => {
+                    document.getElementById("loading").innerText = "(เชื่อมต่อขัดข้อง จะลองใหม่...)";
+                    console.error(err);
+                })
+                .finally(() => {
+                    isFetching = false;
+                    setTimeout(fetchData, 2000);
+                });
+        }
+
+        function updateDetail(machineData) {
+            if (!machineData) return;
+
+            // 1. อัปเดตตารางประวัติ
+            const tbody = document.getElementById("history-table");
+            tbody.innerHTML = ""; // ล้างของเก่า
+            
+            if (machineData.history) {
+                // สร้างตารางโดยเอาข้อมูลล่าสุดขึ้นก่อน (reverse)
+                const reversedHistory = [...machineData.history].reverse();
+                reversedHistory.forEach(row => {
+                    let tr = document.createElement("tr");
+                    
+                    // ใส่สีให้ Status
+                    let statusColor = "black";
+                    if(row.status === "Operating") statusColor = "green";
+                    if(row.status === "Breakdown") statusColor = "red";
+                    if(row.status === "Setup") statusColor = "orange";
+
+                    tr.innerHTML = `
+                        <td>${row.time}</td>
+                        <td style="font-weight:bold;">${row.number}</td>
+                        <td style="color:${statusColor}; font-weight:bold;">${row.status}</td>
+                        <td>${row.oee}%</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            // 2. อัปเดตกราฟ
+            if (singleChartObj) {
+                singleChartObj.data.labels = machineData.labels;
+                singleChartObj.data.datasets[0].data = machineData.oee;
+                singleChartObj.update('none');
+            } else {
+                const ctx = document.getElementById('singleChart').getContext('2d');
+                singleChartObj = new Chart(ctx, {
+                    type: 'line',
+                    data: { 
+                        labels: machineData.labels, 
+                        datasets: [{ 
+                            label: machineName, 
+                            data: machineData.oee, 
+                            borderColor: '#007bff', 
+                            backgroundColor: '#007bff', 
+                            tension: 0.2 
+                        }] 
+                    },
+                    options: { responsive: true, animation: false, scales: { y: { beginAtZero: true, max: 100 } } }
+                });
+            }
+        }
+
+        window.onload = function() {
+            fetchData();
+        };
+    </script>
+</body>
+</html>

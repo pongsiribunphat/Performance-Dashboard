@@ -35,14 +35,26 @@
     <p class="auto-refresh-text">🟢 ระบบกำลังอัปเดตข้อมูลอัตโนมัติทุกๆ 5 วินาที <span id="loading"></span></p>
 
     <!-- การ์ดโชว์สถานะ -->
+    <!-- การ์ดโชว์สถานะ -->
     <div class="status-container">
-        <div id="card-mc1" class="status-card"><h3>เครื่องที่ 1</h3><span id="st-mc1" class="status-text st-NoData">-</span></div>
-        <div id="card-mc2" class="status-card"><h3>เครื่องที่ 2</h3><span id="st-mc2" class="status-text st-NoData">-</span></div>
-        <div id="card-mc3" class="status-card"><h3>เครื่องที่ 3</h3><span id="st-mc3" class="status-text st-NoData">-</span></div>
-        <div id="card-mc4" class="status-card"><h3>เครื่องที่ 4</h3><span id="st-mc4" class="status-text st-NoData">-</span></div>
+        <div id="card-mc1" class="status-card">
+            <h3>เครื่องที่ 1</h3><span id="st-mc1" class="status-text st-NoData">-</span>
+            <br><br><a href="machine.html?id=1" style="font-size: 14px; text-decoration: underline; color: #007bff;">🔍 ดูรายละเอียด</a>
+        </div>
+        <div id="card-mc2" class="status-card">
+            <h3>เครื่องที่ 2</h3><span id="st-mc2" class="status-text st-NoData">-</span>
+            <br><br><a href="machine.html?id=2" style="font-size: 14px; text-decoration: underline; color: #007bff;">🔍 ดูรายละเอียด</a>
+        </div>
+        <div id="card-mc3" class="status-card">
+            <h3>เครื่องที่ 3</h3><span id="st-mc3" class="status-text st-NoData">-</span>
+            <br><br><a href="machine.html?id=3" style="font-size: 14px; text-decoration: underline; color: #007bff;">🔍 ดูรายละเอียด</a>
+        </div>
+        <div id="card-mc4" class="status-card">
+            <h3>เครื่องที่ 4</h3><span id="st-mc4" class="status-text st-NoData">-</span>
+            <br><br><a href="machine.html?id=4" style="font-size: 14px; text-decoration: underline; color: #007bff;">🔍 ดูรายละเอียด</a>
+        </div>
     </div>
 
-    <!-- กราฟรวม 4 เครื่อง -->
     <div class="chart-container">
         <h2>กราฟรวม OEE ทั้ง 4 เครื่อง</h2>
         <canvas id="combinedChart"></canvas>
