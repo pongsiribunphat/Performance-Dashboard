@@ -53,6 +53,7 @@
         // 💡 เทคนิคที่ 1: สร้างตัวล็อก เพื่อป้องกันการโหลดข้อมูลชนกัน
         let isFetching = false; 
         let lastDetailData = "";
+        let singleChartObj = null;
 
         function fetchData() {
             // ถ้าระบบยังโหลดของเก่าไม่เสร็จ ให้หยุดการทำงานรอบนี้ไปก่อน
@@ -63,25 +64,35 @@
             
             // 💡 ทริคทะลวง Cache ป้องกันเว็บจำข้อมูลเก่า
             const noCacheURL = URL + "?t=" + new Date().getTime();
+            const controller = new AbortController();
+            const requestTimeout = setTimeout(() => controller.abort(), 10000);
 
-            fetch(noCacheURL)
-                .then(res => res.json())
+            fetch(noCacheURL, { signal: controller.signal })
+                .then(res => {
+                    return res.text().then(text => {
+                        if (!res.ok) throw new Error("HTTP " + res.status + ": " + text.slice(0, 120));
+                        try {
+                            return JSON.parse(text);
+                        } catch (error) {
+                            throw new Error("API ไม่ได้ส่ง JSON: " + text.slice(0, 120));
+                        }
+                    });
+                })
                 .then(data => {
-                    document.getElementById("loading").innerText = "";
-                    
-                    // เช็คว่าหน้าเว็บปัจจุบันคือ dashboard หรือ machine แล้วเรียกฟังก์ชันให้ถูก
-                    if (typeof updateDashboard === "function") {
-                        updateDashboard(data.machines);
-                    } else if (typeof updateDetail === "function") {
-                        updateDetail(data.machines[machineName]);
+                    if (!data.machines || !data.machines[machineName]) {
+                        throw new Error("ไม่พบข้อมูล " + machineName);
                     }
+                    updateDetail(data.machines[machineName]);
+                    document.getElementById("loading").innerText = "";
                 })
                 .catch(err => {
-                    // ถ้าหลุดจริงๆ ให้ขึ้นข้อความนุ่มนวลขึ้น
-                    document.getElementById("loading").innerText = "(กำลังพยายามเชื่อมต่อใหม่...)";
-                    console.error("Fetch Error:", err);
+                    document.getElementById("loading").innerText = err.name === "AbortError"
+                        ? "(เซิร์ฟเวอร์ตอบช้า จะลองใหม่...)"
+                        : "(โหลดข้อมูลไม่สำเร็จ จะลองใหม่...)";
+                    console.error("Machine Dashboard Error:", err);
                 })
                 .finally(() => {
+                    clearTimeout(requestTimeout);
                     isFetching = false; // โหลดเสร็จแล้ว ปลดล็อกประตูได้
                     setTimeout(fetchData, 5000);
                 });
@@ -89,6 +100,10 @@
 
         function updateDetail(machineData) {
             if (!machineData) return;
+
+            if (!Array.isArray(machineData.labels) || !Array.isArray(machineData.oee)) {
+                throw new Error("ข้อมูลกราฟของ " + machineName + " ไม่ถูกต้อง");
+            }
 
             const detailData = JSON.stringify({
                 labels: machineData.labels,
@@ -125,6 +140,10 @@
             }
 
             // 2. อัปเดตกราฟ
+            if (typeof Chart === "undefined") {
+                throw new Error("โหลด Chart.js ไม่สำเร็จ");
+            }
+
             if (singleChartObj) {
                 singleChartObj.data.labels = machineData.labels;
                 singleChartObj.data.datasets[0].data = machineData.oee;
