@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OEE Real-time Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
     <style>
         body { font-family: 'Prompt', sans-serif; background-color: #f4f7f6; color: #333; padding: 20px; text-align: center; }
         h1 { color: #0056b3; margin-bottom: 5px; }
@@ -76,8 +76,8 @@
             isFetching = true; // ล็อกประตู
             document.getElementById("loading").innerText = "(กำลังซิงค์...)";
             
-            // 💡 ทริคทะลวง Cache ป้องกันเว็บจำข้อมูลเก่า
-            const noCacheURL = URL + "?t=" + new Date().getTime();
+            // ให้ API จัดการ cache และเติมเวลาให้ Google Apps Script เอง
+            const noCacheURL = URL;
             const controller = new AbortController();
             const requestTimeout = setTimeout(() => controller.abort(), 10000);
 
@@ -133,6 +133,8 @@
                 card.className = "status-card " + statusClass;
             });
 
+            document.getElementById("loading").innerText = "";
+
             const datasets = [
                 { label: 'เครื่องที่ 1', data: machines["เครื่องที่ 1"].oee, borderColor: '#007bff', backgroundColor: '#007bff', tension: 0.2 },
                 { label: 'เครื่องที่ 2', data: machines["เครื่องที่ 2"].oee, borderColor: '#28a745', backgroundColor: '#28a745', tension: 0.2 },
@@ -157,7 +159,8 @@
             lastChartData = chartData;
 
             if (typeof Chart === "undefined") {
-                throw new Error("โหลด Chart.js ไม่สำเร็จ");
+                document.getElementById("loading").innerText = "(ข้อมูลสถานะพร้อมแล้ว แต่กราฟกำลังโหลด...)";
+                return;
             }
 
             // 💡 จุดที่แก้ไข: เช็คว่าถ้ามีกราฟอยู่แล้ว ให้อัปเดตแค่ข้อมูลข้างใน

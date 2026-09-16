@@ -62,8 +62,8 @@
             isFetching = true; // ล็อกประตู
             document.getElementById("loading").innerText = "(กำลังซิงค์...)";
             
-            // 💡 ทริคทะลวง Cache ป้องกันเว็บจำข้อมูลเก่า
-            const noCacheURL = URL + "?t=" + new Date().getTime();
+            // ให้ API จัดการ cache และเติมเวลาให้ Google Apps Script เอง
+            const noCacheURL = URL;
             const controller = new AbortController();
             const requestTimeout = setTimeout(() => controller.abort(), 10000);
 

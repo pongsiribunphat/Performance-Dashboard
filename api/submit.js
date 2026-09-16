@@ -20,6 +20,9 @@ export default async function handler(request, response) {
         const googleResponse = await fetch(requestUrl, options);
 
         const result = await googleResponse.text();
+        if (request.method === "GET" && googleResponse.ok) {
+            response.setHeader("Cache-Control", "s-maxage=3, stale-while-revalidate=10");
+        }
         return response.status(googleResponse.ok ? 200 : googleResponse.status)
             .send(result);
     } catch (error) {
