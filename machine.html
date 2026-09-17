@@ -50,68 +50,43 @@
     <script>
         const URL = "/api/submit"; // ใช้ผ่าน Vercel
         
-        // 💡 เทคนิคที่ 1: สร้างตัวล็อก เพื่อป้องกันการโหลดข้อมูลชนกัน
-        let isFetching = false; 
-        let lastDetailData = "";
+        // 💡 เทคนิคการอ่านค่าจาก URL (เช่น ?id=1)
+        const urlParams = new URLSearchParams(window.location.search);
+        const machineId = urlParams.get('id') || "1"; // ถ้าไม่มีเลข ส่ง 1 ไปเป็นค่าเริ่มต้น
+        const machineName = "เครื่องที่ " + machineId;
+        
+        document.getElementById("machine-title").innerText = "📊 ข้อมูลเชิงลึก: " + machineName;
+        document.title = machineName;
+
         let singleChartObj = null;
+        let isFetching = false;
 
         function fetchData() {
-            // ถ้าระบบยังโหลดของเก่าไม่เสร็จ ให้หยุดการทำงานรอบนี้ไปก่อน
-            if (isFetching) return; 
-            
-            isFetching = true; // ล็อกประตู
+            if (isFetching) return;
+            isFetching = true;
             document.getElementById("loading").innerText = "(กำลังซิงค์...)";
             
-            // ให้ API จัดการ cache และเติมเวลาให้ Google Apps Script เอง
-            const noCacheURL = URL;
-            const controller = new AbortController();
-            const requestTimeout = setTimeout(() => controller.abort(), 10000);
-
-            fetch(noCacheURL, { signal: controller.signal })
+            fetch(URL + "?t=" + Date.now())
                 .then(res => {
-                    return res.text().then(text => {
-                        if (!res.ok) throw new Error("HTTP " + res.status + ": " + text.slice(0, 120));
-                        try {
-                            return JSON.parse(text);
-                        } catch (error) {
-                            throw new Error("API ไม่ได้ส่ง JSON: " + text.slice(0, 120));
-                        }
-                    });
+                    if (!res.ok) throw new Error("HTTP " + res.status);
+                    return res.json();
                 })
                 .then(data => {
-                    if (!data.machines || !data.machines[machineName]) {
-                        throw new Error("ไม่พบข้อมูล " + machineName);
-                    }
-                    updateDetail(data.machines[machineName]);
                     document.getElementById("loading").innerText = "";
+                    updateDetail(data.machines[machineName]);
                 })
                 .catch(err => {
-                    document.getElementById("loading").innerText = err.name === "AbortError"
-                        ? "(เซิร์ฟเวอร์ตอบช้า จะลองใหม่...)"
-                        : "(โหลดข้อมูลไม่สำเร็จ จะลองใหม่...)";
-                    console.error("Machine Dashboard Error:", err);
+                    document.getElementById("loading").innerText = "(เชื่อมต่อขัดข้อง จะลองใหม่...)";
+                    console.error(err);
                 })
                 .finally(() => {
-                    clearTimeout(requestTimeout);
-                    isFetching = false; // โหลดเสร็จแล้ว ปลดล็อกประตูได้
+                    isFetching = false;
                     setTimeout(fetchData, 5000);
                 });
         }
 
         function updateDetail(machineData) {
             if (!machineData) return;
-
-            if (!Array.isArray(machineData.labels) || !Array.isArray(machineData.oee)) {
-                throw new Error("ข้อมูลกราฟของ " + machineName + " ไม่ถูกต้อง");
-            }
-
-            const detailData = JSON.stringify({
-                labels: machineData.labels,
-                oee: machineData.oee,
-                history: machineData.history
-            });
-            if (detailData === lastDetailData) return;
-            lastDetailData = detailData;
 
             // 1. อัปเดตตารางประวัติ
             const tbody = document.getElementById("history-table");
@@ -140,10 +115,6 @@
             }
 
             // 2. อัปเดตกราฟ
-            if (typeof Chart === "undefined") {
-                throw new Error("โหลด Chart.js ไม่สำเร็จ");
-            }
-
             if (singleChartObj) {
                 singleChartObj.data.labels = machineData.labels;
                 singleChartObj.data.datasets[0].data = machineData.oee;
